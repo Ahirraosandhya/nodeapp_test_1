@@ -1,7 +1,27 @@
+---
+apiVersion: v1
+data:
+  asmita.conf: |
+    This is my configuration file...asmita here !!
+kind: ConfigMap
+metadata:
+  name: config-asmita
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret-am
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: YWRtaW4xMjM=
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nodeapp-deployment
+  name: nodeapp-deployment-am
   labels:
     app: nodeapp
 spec:
@@ -12,27 +32,40 @@ spec:
   template:
     metadata:
       labels:
-        app: nodeapp 
+        app: nodeapp
     spec:
       containers:
-      - name: nodeserver
-        image: thetips4you/nodeapp:latest
-        ports:
-        - containerPort: 3000
-        
-        
----
+        - name: nodeserver
+          image: thetips4you/nodeapp:latest
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: testconfigmap
+              mountPath: /tmp/config
+            - name: testsecret
+              mountPath: /tmp/mysecrets
+      volumes:
+        - name: testconfigmap
+          configMap:
+            name: config-asmita
+            items:
+              - key: asmita.conf
+                path: asmita.conf
+        - name: testsecret
+          secret:
+            secretName: secret-am
 
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: nodeapp-service
+  name: nodeapp-svc-am
 spec:
   selector:
-    app: nodeapp 
-  type: LoadBalancer
+    app: nodeapp
+  type: NodePort
   ports:
-  - protocol: TCP
-    port: 5000
-    targetPort: 3000
-    nodePort: 32220
+    - protocol: TCP
+      port: 5000
+      targetPort: 3000
+      nodePort: 32220
